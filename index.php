@@ -1,6 +1,6 @@
 <?php
 	set_time_limit(0);
-	error_reporting(1);
+	error_reporting(0);
 	require_once 'spider.php';
 	require_once 'parser.php';
 	/**
@@ -23,10 +23,12 @@
 		public $useProxy;
 		public $continueScrapping;
 		public $counter;
+                private $cachedURIs;
 		function __construct() {
 			$this->outFile = "output.csv";
 			$this->counter = 0;
-			$this->toSend = '&_ctl2%3Arp1=&_ctl4%3AbtnOk=I+agree&txtBack=1&txtConfirmURL=';
+			$this->cachedURIs = array();
+                        $this->toSend = '&_ctl2%3Arp1=&_ctl4%3AbtnOk=I+agree&txtBack=1&txtConfirmURL=';
 			$this->post = "__VIEWSTATE=dDwxOTUxNDk5NTA3O3Q8O2w8aTwxPjs%2BO2w8dDw7bDxpPDI%2BO2k8Nj47aTwxMj47aTwxND47PjtsPHQ8O2w8aTwwPjs%2BO2w8dDw7bDxpPDA%2BOz47bDx0PHA8cDxsPFRleHQ7PjtsPFw8YSBocmVmPSJodHRwOi8vY2l0eXBsYW4yMDE0bWFwcy5icmlzYmFuZS5xbGQuZ292LmF1L0NpdHlQbGFuLyIgdGFyZ2V0PSJfYmxhbmsiXD5JbnRlcmFjdGl2ZSBNYXBwaW5nXDwvYVw%2BIFw8YSBocmVmPSJodHRwOi8vY2l0eXBsYW4yMDE0bWFwcy5icmlzYmFuZS5xbGQuZ292LmF1L0NpdHlQbGFuLyIgdGFyZ2V0PSJfYmxhbmsiXD5cPC9hXD47Pj47Pjs7Pjs%2BPjs%2BPjt0PDtsPGk8MD47PjtsPHQ8O2w8aTwxPjs%2BO2w8dDxAMDxwPHA8bDxFeHBhbmRNb2RlOz47bDxUZWxlcmlrLldlYkNvbnRyb2xzLlBhbmVsYmFyRXhwYW5kTW9kZSwgUmFkUGFuZWxiYXIsIFZlcnNpb249NC4wLjEuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1lMGQxNmY2ZjRjN2UwNWRlPFNpbmdsZUV4cGFuZGVkSXRlbT47Pj47PjtAMDxAMDxwPHA8bDxUZXh0O0V4cGFuZGVkO1NlbGVjdGVkOz47bDxQcm9wZXJ0eSBlbnF1aXJ5O288dD47bzxmPjs%2BPjs%2BO0AwPEAwPHA8cDxsPFRleHQ7TmF2aWdhdGVVcmw7U2VsZWN0ZWQ7PjtsPEhvbWUgXDxpbWcgc3JjPSIuLlxcLi5cXGNvbW1vblxcUmFkQ29udHJvbHNcXHBhbmVsYmFyXFxza2luc1xcZGVmYXVsdFxcaW1nXFxoZWFkZXJhcnJvdy5naWYiIGJvcmRlcj0iMCIvXD47Li4vLi4vZW5xdWlyZXIvZGVmYXVsdC5hc3B4P3BhZ2U9aG9tZTtvPHQ%2BOz4%2BOz47Oz47QDA8cDxwPGw8VGV4dDtOYXZpZ2F0ZVVybDtTZWxlY3RlZDs%2BO2w8RGlzY2xhaW1lcjsuLi8uLi9lbnF1aXJlci9kZWZhdWx0LmFzcHg%2FcGFnZT1kaXNjbGFpbWVyO288Zj47Pj47Pjs7PjtAMDxwPHA8bDxUZXh0O05hdmlnYXRlVXJsO1NlbGVjdGVkOz47bDxTZWFyY2g7Li4vLi4vZW5xdWlyZXIvZGVmYXVsdC5hc3B4P3BhZ2U9c2VhcmNoO288Zj47Pj47Pjs7Pjs%2BOz47Pjs%2BO2w8aTwwPjs%2BO2w8dDxwPHA8bDxUZXh0O0V4cGFuZGVkO1NlbGVjdGVkOz47bDxQcm9wZXJ0eSBlbnF1aXJ5O288dD47bzxmPjs%2BPjs%2BO2w8aTwwPjtpPDE%2BO2k8Mj47PjtsPHQ8cDxwPGw8VGV4dDtOYXZpZ2F0ZVVybDtTZWxlY3RlZDs%2BO2w8SG9tZSBcPGltZyBzcmM9Ii4uXFwuLlxcY29tbW9uXFxSYWRDb250cm9sc1xccGFuZWxiYXJcXHNraW5zXFxkZWZhdWx0XFxpbWdcXGhlYWRlcmFycm93LmdpZiIgYm9yZGVyPSIwIi9cPjsuLi8uLi9lbnF1aXJlci9kZWZhdWx0LmFzcHg%2FcGFnZT1ob21lO288dD47Pj47Pjs7Pjt0PHA8cDxsPFRleHQ7TmF2aWdhdGVVcmw7U2VsZWN0ZWQ7PjtsPERpc2NsYWltZXI7Li4vLi4vZW5xdWlyZXIvZGVmYXVsdC5hc3B4P3BhZ2U9ZGlzY2xhaW1lcjtvPGY%2BOz4%2BOz47Oz47dDxwPHA8bDxUZXh0O05hdmlnYXRlVXJsO1NlbGVjdGVkOz47bDxTZWFyY2g7Li4vLi4vZW5xdWlyZXIvZGVmYXVsdC5hc3B4P3BhZ2U9c2VhcmNoO288Zj47Pj47Pjs7Pjs%2BPjs%2BPjs%2BPjs%2BPjt0PHA8bDxUZXh0Oz47bDxcPGRpdiBpZD0ib3ZlckRpdiIgc3R5bGU9InBvc2l0aW9uOmFic29sdXRlXDt2aXNpYmlsaXR5OmhpZGRlblw7ei1pbmRleDo5OThcOyJcPlw8L2Rpdlw%2BDQpcPHNjcmlwdCBzcmM9Ii4uLy4uL2NvbW1vbi9vdmVyTGliLmpzIiBsYW5ndWFnZT0namF2YXNjcmlwdCdcPlw8L3NjcmlwdFw%2BDQoNClw8c2NyaXB0IGxhbmd1YWdlPSJKYXZhU2NyaXB0Ilw%2BV2FpdC5zdHlsZS5kaXNwbGF5ID0gJ25vbmUnXDtcPC9zY3JpcHRcPg0KXDxkaXYgaWQ9ImRpdkJhY2tUb1RvcCIgIG9uQ2xpY2s9ImphdmFzY3JpcHQ6bXRfcGFnZXRvcCgpIiBjbGFzcz0iSGlkZGVuTmF2Ilw%2BXDxpbWcgc3JjPSIuLi8uLi9jb21tb24vYmFzZWltYWdlcy90b3AuZ2lmIiB3aWR0aD0iMTgiIGhlaWdodD0iMjciIGJvcmRlcj0iMCIgYWx0PSJUb3Agb2YgcGFnZSJcPlw8L2Rpdlw%2BXDxkaXYgaWQ9ImRpdk1vcmVPblBhZ2UiIG9uQ2xpY2s9ImphdmFzY3JpcHQ6bXRfcGFnZWRvd24oKSIgY2xhc3M9IkhpZGRlbk5hdiJcPlw8aW1nIHNyYz0iLi4vLi4vY29tbW9uL2Jhc2VpbWFnZXMvbW9yZS5naWYiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyNyIgYm9yZGVyPSIwIiBhbHQ9Ik1vcmUgaW5mb3JtYXRpb24gb24gcGFnZSJcPlw8L2Rpdlw%2BDQpcPHNjcmlwdCBsYW5ndWFnZT0namF2YXNjcmlwdCdcPg0KdmFyIHg9JzEnXDsNCnZhciBpc0JhY2tcOw0KZnVuY3Rpb24gaGFuZGxlQmFja0J1dHRvbigpIHsNCmlzQmFjayA9ICh4ICE9IGRvY3VtZW50LmZybU1hc3RlclBsYW4udHh0QmFjay52YWx1ZSlcOw0KZG9jdW1lbnQuZnJtTWFzdGVyUGxhbi50eHRCYWNrLnZhbHVlPTJcOw0KZG9jdW1lbnQuZnJtTWFzdGVyUGxhbi50eHRCYWNrLmRlZmF1bHRWYWx1ZT0yXDsNCmlmKGlzQmFjaykNCnsNCnZhciBzdHJVUkxcOw0Kc3RyVVJMPWRvY3VtZW50LmFsbC5pdGVtKCJ0eHRDb25maXJtVVJMIikudmFsdWVcOw0KdmFyIHN0clw7DQpzdHI9d2luZG93LmxvY2F0aW9uLmhyZWZcOw0KaWYoc3RyLmluZGV4T2YoJ3BhZ2U9dXNlcycpIT0tMSkNCnsNCmhpc3RvcnkuYmFjaygxKVw7DQp9DQppZihzdHIuaW5kZXhPZigncGFnZT1jb25maXJtJykhPS0xKQ0Kew0KfQ0KaWYoc3RyLmluZGV4T2YoJ3BhZ2U9dXNlcycpPT0tMSAmJiBzdHIuaW5kZXhPZigncGFnZT1jb25maXJtJyk9PS0xKQ0Kew0KaWYoc3RyLmluZGV4T2YoJ2NvdW50ZXI9JykhPS0xKQ0Kew0KdmFyIGNvdW50ZXIgPSBnZXRQYXJhbWV0ZXIoJ2NvdW50ZXInKVw7DQp2YXIgc3RlcHNiYWNrXDsNCnN0ZXBzYmFjaz0wXDsNCmlmKGNvdW50ZXIhPSdudWxsJyAmJiBjb3VudGVyIT0nJykNCnsNCnN0ZXBzYmFjayA9IHN0ZXBzYmFjayArIHBhcnNlSW50KGNvdW50ZXIpXDsNCn0NCnZhciBiYWNrbnVtXDsNCmJhY2tudW09cGFyc2VJbnQoc3RlcHNiYWNrKVw7DQpiYWNrbnVtPS1iYWNrbnVtXDsNCmlmKHN0ZXBzYmFjayAhPSAwKQ0Kew0KaGlzdG9yeS5nbyhiYWNrbnVtKVw7DQp9DQp9DQp9DQp9DQp9DQpcPC9zY3JpcHRcPg0KXDxzY3JpcHQgbGFuZ3VhZ2U9J2phdmFzY3JpcHQnXD4NCmZ1bmN0aW9uIGdldFBhcmFtZXRlcihwYXJhbWV0ZXJOYW1lKSB7DQp2YXIgcXVlcnlTdHJpbmcgPSB3aW5kb3cubG9jYXRpb24uc2VhcmNoLnN1YnN0cmluZygxKS50b0xvd2VyQ2FzZSgpXDsNCnZhciBwYXJhbWV0ZXJzID0gbmV3IEFycmF5KClcOw0KcGFyYW1ldGVycyA9IHF1ZXJ5U3RyaW5nLnNwbGl0KCcmJylcOw0KZm9yKHZhciBpID0gMFw7IGkgXDwgcGFyYW1ldGVycy5sZW5ndGhcOyBpKyspIA0Kew0KaWYocGFyYW1ldGVyc1tpXS5pbmRleE9mKHBhcmFtZXRlck5hbWUudG9Mb3dlckNhc2UoKSlcPj0wKSANCnsNCnZhciBwYXJhbWV0ZXJWYWx1ZSA9IG5ldyBBcnJheSgpXDsNCnBhcmFtZXRlclZhbHVlID0gcGFyYW1ldGVyc1tpXS5zcGxpdCgnPScpXDsNCnJldHVybiBwYXJhbWV0ZXJWYWx1ZVsxXVw7DQp9DQp9DQpyZXR1cm4gIm51bGwiXDsNCn0NClw8L3NjcmlwdFw%2BDQo7Pj47Oz47dDxwPGw8VmlzaWJsZTs%2BO2w8bzxmPjs%2BPjs7Pjs%2BPjs%2BPjtsPF9jdGwyOnJwMTs%2BPg7Usj5HcIZQZ9rUeeSnIR0YsHYi";
 			$this->mainURI  = 'http://pdonline.brisbane.qld.gov.au/MasterView/masterplan/enquirer/default.aspx';
 			$this->referer = 'http://pdonline.brisbane.qld.gov.au/MasterView/masterplan/enquirer/default.aspx';
@@ -220,34 +222,37 @@
 				}else{
 					$contents['Content'] = "N/A";
 				}
-				fputcsv($opener, $contents);
+                                if($contents['Street'] !== "N/A" && $contents['Suburb'] !== "N/A")
+                                    fputcsv($opener, $contents);
 				fclose($opener);
 			}
 		}
-		public function search($stTo = 1, $stFrom = 1, $street = '', $suburb = ''){
+		public function search($stTo = 1, $stFrom = 1, $street = '', $suburb = ''){	
 			$toSend = "&_ctl2%3Arp1=&_ctl4%3AnrUnit%3Anum1=&_ctl4%3AnrUnit%3Anum2=&_ctl4%3AnrStreet%3Anum1=$stTo&_ctl4%3AnrStreet%3Anum2=$stFrom&_ctl4%3AtxtStreet%3Atb=$street&_ctl4%3AtxtSuburb%3Atb=$suburb&_ctl4%3A_ctl3=&_ctl4%3A_ctl6=&_ctl4%3AbtnSearch.x=36&_ctl4%3AbtnSearch.y=4&txtBack=1&txtConfirmURL=";
 			$view = $this->getViewState(Spider::spider($this->header, $this->referer, $this->mainURI.'?page=search', false, false, $this->useProxy));
 			$this->post = $view.$toSend;
 			$this->referer = "http://pdonline.brisbane.qld.gov.au/MasterView/masterplan/enquirer/default.aspx?page=search";
 recheck:			
 			$page = Spider::spider($this->header, $this->referer, $this->mainURI.'?page=search', false, $this->post, $this->useProxy);
+			
 			if(!$page){
-				$page = Spider::spider($this->header, $this->referer, $this->mainURI.'?page=search', false, $this->post, $this->useProxy);
-				if(!$page){
-					$this->throwError();
-					goto recheck;
-				}
+                            $page = Spider::spider($this->header, $this->referer, $this->mainURI.'?page=search', false, $this->post, $this->useProxy);
+                            if(!$page){
+                                $this->throwError();
+                                goto recheck;
+                            }
 			}
 			$page = str_get_html($page);
 			$links = array();
 			foreach ($page->find('#_ctl4_lblData') as $table){
-				foreach ($table->find('a') as $a){
-					$links[] = "http://pdonline.brisbane.qld.gov.au/MasterView/masterplan/enquirer/".$a->href;
-				}
+                            foreach ($table->find('a') as $a){
+                                $links[] = "http://pdonline.brisbane.qld.gov.au/MasterView/masterplan/enquirer/".$a->href;
+                            }
 			}
+			
 			$links = array_unique($links);
-			if(count($links == 1)){
-				if(trim(end($links)) == 'http://pdonline.brisbane.qld.gov.au/MasterView/masterplan/enquirer/'){
+			if(count($links == 0)){
+				{
 					if($this->counter == 400){
 						$this->continueScrapping = false;
 						$this->counter = 0;
@@ -258,9 +263,14 @@ recheck:
 					
 				}
 			}
+                        $this->cachedURIs = array();
 			foreach($links as $link){
-				file_put_contents('links.txt', str_replace("&amp;", "&", $link).PHP_EOL, FILE_APPEND);
-				$page = Spider::spider($this->header, false, str_replace("&amp;", "&", $link), false, false, $this->useProxy);
+                                if($this->pushCache(str_replace("&amp;", "&", $link))){
+                                    echo $link."<br />";
+                                    continue;
+                                }
+                                file_put_contents('links.txt', str_replace("&amp;", "&", $link).PHP_EOL, FILE_APPEND);
+                                $page = Spider::spider($this->header, false, str_replace("&amp;", "&", $link), false, false, $this->useProxy);
 				if(!$page){
 					$page = Spider::spider($this->header, false, str_replace("&amp;", "&", $link), false, false, $this->useProxy);
 					if(!$page){
@@ -271,22 +281,30 @@ recheck:
 				$this->parserPage($page);
 			}
 		}
+                private function pushCache($check){
+                    if(in_array($check, $this->cachedURIs)){
+                        return true;
+                    }else{
+                        $this->cachedURIs[] = $check;
+                        return false;
+                    }
+                }
 		public function parseFile($fileName)
 		{
-			$csv = new parseCSV();
-			$csv->auto($fileName);
-			if (count($csv->data)) {
-				return $csv->data;
-			} else
-				return false;
+                    $csv = new parseCSV();
+                    $csv->auto($fileName);
+                    if (count($csv->data)) {
+                            return $csv->data;
+                    } else
+                            return false;
 		}
 
 		public function getFilesName(){
-			$CSVs = array();
-			foreach (glob("./inputs/*.csv") as $file) {
-        		if($file){
-        			$CSVs[] = $file;
-        		}
+                    $CSVs = array();
+                    foreach (glob("./inputs/*.csv") as $file) {
+                    if($file){
+                            $CSVs[] = $file;
+                    }
         	}
         	return $CSVs;
 		}
@@ -298,6 +316,7 @@ recheck:
 		$files = $scrapper->getFilesName();
 		foreach ($files as $file) {
 			$data = ($scrapper->parseFile($file));
+                        
 			if(isset($_POST['delay'])){
 				$scrapper->delay = $_POST['delay'];
 			}
@@ -307,6 +326,7 @@ recheck:
 			$scrapper->continueScrapping = true;
 			$scrapper->setCookie();
 			foreach($data as $single){
+                                $scrapper->continueScrapping = true;
 				$street = explode(" ", trim($single['Street Number']));
 				if(count($street) < 2 ){
 					$street = explode("-", trim($single['Street Number']));
@@ -337,18 +357,21 @@ recheck:
 				$sub = $single["Suburb"];
 				if($from == 10000){
 					$from = 50;
+                                        
 					while ($from <= 10000) {
 						if($scrapper->continueScrapping === false){
 							break 1;
 						}
 						$scrapper->search($to, $from, urlencode("$st"), urlencode("$sub"));
+						$to = (int)$from + 1;
 						$from += 50;
+                                                
 					}
 				}else{
 					$scrapper->search($to, $from, urlencode("$st"), urlencode("$sub"));
 				}
 			}
-		}die();
+		}
 	}
 	if(isset($_POST['process'])){
 		process();
